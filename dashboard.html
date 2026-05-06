@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+  <h1>Dashboard</h1>
+
+  <div class="card">
+
+    <h3>Create Task</h3>
+    <input id="title" placeholder="Task title">
+    <select id="status">
+      <option>Pending</option>
+      <option>In Progress</option>
+      <option>Done</option>
+    </select>
+    <button onclick="createTask()">Add Task</button>
+
+    <hr>
+
+    <button onclick="getTasks()">Load Tasks</button>
+    <button onclick="logout()" style="background:red;margin-top:10px;">Logout</button>
+
+    <div id="tasks" style="margin-top:20px;"></div>
+
+  </div>
+</div>
+
+<script>
+const API = "http://localhost:5000/api/tasks";
+
+function getToken() {
+  return localStorage.getItem("token");
+}
+
+// ✅ CREATE TASK
+async function createTask() {
+  const title = document.getElementById("title").value;
+  const status = document.getElementById("status").value;
+
+  const res = await fetch(API, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: getToken()
+    },
+    body: JSON.stringify({ title, status })
+  });
+
+  document.getElementById("title").value = "";
+  getTasks();
+}
+
+// ✅ GET TASKS
+async function getTasks() {
+  const res = await fetch(API, {
+    headers: { Authorization: getToken() }
+  });
+
+  const tasks = await res.json();
+
+  document.getElementById("tasks").innerHTML =
+    tasks.map(t => `
+      <div style="padding:10px;margin:10px;border-radius:5px;
+                  background:${getColor(t.status)}">
+
+        <b>${t.title}</b><br>
+        Status: ${t.status}<br>
+
+        <button onclick="updateTask('${t._id}', 'Done')">Mark Done</button>
+        <button onclick="deleteTask('${t._id}')" style="background:red;">Delete</button>
+
+      </div>
+    `).join("");
+}
+
+// ✅ UPDATE TASK
+async function updateTask(id, status) {
+  await fetch(API + "/" + id, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: getToken()
+    },
+    body: JSON.stringify({ status })
+  });
+
+  getTasks();
+}
+
+// ✅ DELETE TASK
+async function deleteTask(id) {
+  await fetch(API + "/" + id, {
+    method: "DELETE",
+    headers: { Authorization: getToken() }
+  });
+
+  getTasks();
+}
+
+// 🎨 STATUS COLOR
+function getColor(status) {
+  if (status === "Pending") return "#fff3cd";
+  if (status === "In Progress") return "#cce5ff";
+  if (status === "Done") return "#d4edda";
+}
+
+// 🚪 LOGOUT
+function logout() {
+  localStorage.removeItem("token");
+  window.location.href = "index.html";
+}
+</script>
+
+</body>
+</html>
